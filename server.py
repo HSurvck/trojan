@@ -1,4 +1,5 @@
 # coding:utf-8
+"""  简单的接受数据的server """
 import socket
 import json
 
@@ -25,10 +26,8 @@ conn, addr = sk.accept()
 header_message = conn.recv(1024)
 file_fp = header_handler(str(header_message))
 print u'接受键盘消息'
-index = 1
 while True:
     # 获取客户端请求数据
-    index += 1
     client_data = conn.recv(1024*10)
     if len(client_data) == 0:
         break
