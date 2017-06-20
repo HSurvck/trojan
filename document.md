@@ -75,7 +75,9 @@ def screen_shot(file_name='screen_shot', file_type='png'):
     print u'3秒过后截图'
     time.sleep(3)
     # 调用外部程序
-    ret = commands.getstatusoutput("scrot " + file_name + '.' + file_type)
+    # 因为服务端代代码也是运行在本机，如果名字一样。那么os.remove操作可能会导致
+    # 在本地看不到效果
+    ret = commands.getstatusoutput("scrot " + file_name + 'tmp.' + file_type)
     if ret[0] != 0:
         print u"图片类型不支持，请换用png jpg等常用格式"
         return
