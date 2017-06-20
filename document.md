@@ -452,6 +452,12 @@ def main(key_name, pic_name, key_type='txt', pic_type='png'):
         # 父进程
         keylogger_func(key_name, key_type)
 ```
+为了正常运行程序，先在终端中运行`python server.py -p 8888`, 开启接受键盘数据的服务，`python server -p 8889`开起一个接受图像的服务。
+然后运行`python main.py`就可以了。运行效果如下:
+![][result]
+## 六 总结
+基于`Linux`的设备管理相关知识和`evdev`库的使用，实现键盘记录，并详细介绍了缓冲区的处理方法和网络编程的相关知识。利用多进程编程实现
+屏幕截图和键盘记录并发执行的效果。通过该项目的学习和实现，可以了解木马程序的基本结构和原理，加强对`Linux`的底层的了解，实践网络编程及相关应用。
 
 [CHAR_NODE]: http://blog.jobbole.com/86531/
 [x11]: https://github.com/amoffat/pykeylogger
@@ -463,4 +469,4 @@ def main(key_name, pic_name, key_type='txt', pic_type='png'):
 [status_manager]: 状态管理截图
 [decode_input]: 原始数据和解码后的截图
 [multiprocess]: http://python.jobbole.com/82045/
-
+[result]: /images/result.png
